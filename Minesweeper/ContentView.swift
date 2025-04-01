@@ -7,8 +7,35 @@
 
 import SwiftUI
 
+enum GameState {
+    case waiting, playing, won, lost
+}
+
 struct ContentView: View {
     @State private var rows = [[Square]]()
+
+    @State private var gameState = GameState.waiting
+    @State private var secondsElapsed = 0
+    @State private var isHoveringOverRestart = false
+
+    @State private var timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    var statusEmoji: String {
+        if isHoveringOverRestart {
+            "😯"
+        } else {
+            switch gameState {
+                    case .waiting:
+                        "🙂"
+                    case .playing:
+                        "🙂"
+                    case .won:
+                        "😎"
+                    case .lost:
+                        "😵"
+                    }
+        }
+    }
 
     var allSquares: [Square] {
         rows.flatMap { $0 }
@@ -31,24 +58,60 @@ struct ContentView: View {
     }
 
     var body: some View {
-        Grid(horizontalSpacing: 2, verticalSpacing: 2) {
-            ForEach(0..<rows.count, id: \.self) { row in
-                GridRow {
-                    ForEach(rows[row]) { square in
-                        SquareView(square: square)
-                            .onTapGesture {
-                                select(square)
-                            }
-                            .onLongPressGesture {
-                                flag(square)
-                            }
+        VStack {
+            HStack(spacing: 0) {
+                Text(minesFound.formatted(.number.precision(.integerLength(3))))
+                    .fixedSize()
+                    .padding(.horizontal, 6)
+                    .foregroundStyle(.red.gradient)
+
+                Button(action: reset) {
+                    Text(statusEmoji)
+                        .padding(.horizontal, 6)
+                        .background(.gray.opacity(0.5).gradient)
+                }
+                .onHover { hovering in
+                    isHoveringOverRestart = hovering
+                }
+                .buttonStyle(.plain)
+
+                Text(secondsElapsed.formatted(.number.precision(.integerLength(3))))
+                    .fixedSize()
+                    .padding(.horizontal, 6)
+                    .foregroundStyle(.red.gradient)
+            }
+            .monospacedDigit()
+            .font(.largeTitle)
+            .background(.black)
+            .clipShape(.rect(cornerRadius: 10))
+            .padding(.top)
+
+            Grid(horizontalSpacing: 2, verticalSpacing: 2) {
+                ForEach(0..<rows.count, id: \.self) { row in
+                    GridRow {
+                        ForEach(rows[row]) { square in
+                            SquareView(square: square)
+                                .onTapGesture {
+                                    select(square)
+                                }
+                                .onLongPressGesture {
+                                    flag(square)
+                                }
+                        }
                     }
                 }
             }
+            .font(.largeTitle)
+            .onAppear(perform: createGrid)
+            .preferredColorScheme(.dark)
+            .clipShape(.rect(cornerRadius: 6))
+            .padding([.horizontal, .bottom])
         }
-        .font(.largeTitle)
-        .onAppear(perform: createGrid)
-        .preferredColorScheme(.dark)
+        .onReceive(timer) { _ in
+            guard gameState == .playing else { return }
+            guard secondsElapsed < 999 else { return }
+            secondsElapsed += 1
+        }
     }
 
     func createGrid() {
@@ -123,12 +186,14 @@ struct ContentView: View {
     }
 
     func select(_ square: Square) {
+        guard gameState == .waiting || gameState == .playing else { return }
         guard square.isRevealed == false else { return }
         guard square.isFlagged == false else { return }
 
         // Place mines on first move.
         if revealedSquares.count == 0 {
             placeMines(avoiding: square)
+            gameState = .playing
         }
 
         if square.hasMine == false && square.nearbyMines == 0 {
@@ -138,14 +203,34 @@ struct ContentView: View {
             square.isRevealed = true
 
             if square.hasMine {
-                // You looose
+                withAnimation(.default.delay(0.25)) {
+                    gameState = .lost
+                }
+
+                return
             }
         }
+
+        checkForWin()
     }
 
     func flag(_ square: Square) {
         guard square.isRevealed == false else { return }
         square.isFlagged.toggle()
+    }
+
+    func checkForWin() {
+        if revealedSquares.count == allSquares.count - minedSquares.count {
+            withAnimation(.default.delay(0.25)) {
+                gameState = .won
+            }
+        }
+    }
+
+    func reset() {
+        secondsElapsed = 0
+        gameState = .waiting
+        createGrid()
     }
 }
 

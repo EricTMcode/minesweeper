@@ -32,7 +32,7 @@ struct SquareView: View {
                     Text(String(square.nearbyMines))
                 }
             } else if square.isFlagged {
-                Image(systemName: "exclationmark.triangle.fill")
+                Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.black, .yellow)
                     .shadow(color: .black, radius: 3)
             }
