@@ -14,7 +14,7 @@ class Square: Equatable, Identifiable {
     var column: Int
     var hasMine = false
     var nearbyMines = 0
-    var isRevealed = true
+    var isRevealed = false
     var isFlagged = false
 
     init(row: Int, column: Int) {

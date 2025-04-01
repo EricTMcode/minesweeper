@@ -42,8 +42,6 @@ struct ContentView: View {
 
             rows.append(rowSquares)
         }
-
-        placeMines(avoiding: rows[4][4])
     }
 
     func square(atRow row: Int, column: Int) -> Square? {
