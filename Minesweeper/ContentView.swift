@@ -58,59 +58,71 @@ struct ContentView: View {
     }
 
     var body: some View {
-        VStack {
-            HStack(spacing: 0) {
-                Text(minesFound.formatted(.number.precision(.integerLength(3))))
-                    .fixedSize()
-                    .padding(.horizontal, 6)
-                    .foregroundStyle(.red.gradient)
-
-                Button(action: reset) {
-                    Text(statusEmoji)
+        ZStack {
+            VStack {
+                HStack(spacing: 0) {
+                    Text(minesFound.formatted(.number.precision(.integerLength(3))))
+                        .fixedSize()
                         .padding(.horizontal, 6)
-                        .background(.gray.opacity(0.5).gradient)
+                        .foregroundStyle(.red.gradient)
+                    
+                    Button(action: reset) {
+                        Text(statusEmoji)
+                            .padding(.horizontal, 6)
+                            .background(.gray.opacity(0.5).gradient)
+                    }
+                    .onHover { hovering in
+                        isHoveringOverRestart = hovering
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Text(secondsElapsed.formatted(.number.precision(.integerLength(3))))
+                        .fixedSize()
+                        .padding(.horizontal, 6)
+                        .foregroundStyle(.red.gradient)
                 }
-                .onHover { hovering in
-                    isHoveringOverRestart = hovering
-                }
-                .buttonStyle(.plain)
-
-                Text(secondsElapsed.formatted(.number.precision(.integerLength(3))))
-                    .fixedSize()
-                    .padding(.horizontal, 6)
-                    .foregroundStyle(.red.gradient)
-            }
-            .monospacedDigit()
-            .font(.largeTitle)
-            .background(.black)
-            .clipShape(.rect(cornerRadius: 10))
-            .padding(.top)
-
-            Grid(horizontalSpacing: 2, verticalSpacing: 2) {
-                ForEach(0..<rows.count, id: \.self) { row in
-                    GridRow {
-                        ForEach(rows[row]) { square in
-                            SquareView(square: square)
-                                .onTapGesture {
-                                    select(square)
-                                }
-                                .onLongPressGesture {
-                                    flag(square)
-                                }
+                .monospacedDigit()
+                .font(.largeTitle)
+                .background(.black)
+                .clipShape(.rect(cornerRadius: 10))
+                .padding(.top)
+                
+                Grid(horizontalSpacing: 2, verticalSpacing: 2) {
+                    ForEach(0..<rows.count, id: \.self) { row in
+                        GridRow {
+                            ForEach(rows[row]) { square in
+                                SquareView(square: square)
+                                    .onTapGesture {
+                                        select(square)
+                                    }
+                                    .onLongPressGesture {
+                                        flag(square)
+                                    }
+                            }
                         }
                     }
                 }
+                .font(.largeTitle)
+                .onAppear(perform: createGrid)
+                .preferredColorScheme(.dark)
+                .clipShape(.rect(cornerRadius: 6))
+                .padding([.horizontal, .bottom])
+                .opacity(gameState == .waiting || gameState == .playing ? 1 : 0.5)
+                .disabled(gameState == .won || gameState == .lost)
             }
-            .font(.largeTitle)
-            .onAppear(perform: createGrid)
-            .preferredColorScheme(.dark)
-            .clipShape(.rect(cornerRadius: 6))
-            .padding([.horizontal, .bottom])
-        }
-        .onReceive(timer) { _ in
-            guard gameState == .playing else { return }
-            guard secondsElapsed < 999 else { return }
-            secondsElapsed += 1
+            .onReceive(timer) { _ in
+                guard gameState == .playing else { return }
+                guard secondsElapsed < 999 else { return }
+                secondsElapsed += 1
+            }
+
+            if gameState == .won || gameState == .lost {
+                GameOverView(state: gameState) {
+                    withAnimation {
+                        reset()
+                    }
+                }
+            }
         }
     }
 
